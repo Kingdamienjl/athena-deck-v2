@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Athena Vision – fullscreen camera preview for FNK0100 DSI display
+# IMPORTANT: Requires X11 (Wayland must be disabled via raspi-config)
+
+# Set display environment
+export DISPLAY=:0
+export XAUTHORITY=/home/pi/.Xauthority
+
+# Launch fullscreen camera preview
+# This works cleanly on X11 without window manager issues
+rpicam-hello --fullscreen -t 0

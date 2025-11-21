@@ -1,0 +1,28 @@
+# Python junk
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual envs
+venv/
+.venv/
+oledenv/
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Logs and runtime files
+*.log
+/tmp/
+*.pid
+
+# Backups / archives
+*.tar.gz
+backups/*.tar.gz
+
+# Pi-specific noise
+*.old
+*.bak

@@ -1,0 +1,4 @@
+services:
+  red-team:
+    image: alpine:latest
+    command: ["sh", "-c", "while true; do echo Red Team Sandbox; sleep 60; done"]

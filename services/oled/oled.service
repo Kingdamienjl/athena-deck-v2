@@ -1,0 +1,15 @@
+[Unit]
+Description=Athena OLED Status Display
+After=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi
+Environment="PATH=/home/pi/oledenv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/home/pi/oledenv/bin/python /home/pi/athena-deck-v2/services/oled/oled_monitor.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(echo:*)",
+      "Bash(sudo cp:*)",
+      "Bash(sudo chmod:*)",
+      "Bash(cat:*)",
+      "Bash(sudo systemctl status:*)",
+      "Bash(sudo journalctl:*)",
+      "Bash(source:*)",
+      "Bash(pip install:*)",
+      "Bash(deactivate)",
+      "Bash(sudo systemctl restart:*)",
+      "Bash(apt search:*)",
+      "Bash(dpkg:*)",
+      "Bash(pip3 list:*)",
+      "Bash(sudo rm:*)",
+      "Bash(python3 -m venv:*)",
+      "Bash(sudo systemctl daemon-reload:*)",
+      "Bash(docker-compose:*)",
+      "Bash(docker compose:*)",
+      "Bash(sudo apt install:*)",
+      "Bash(mode ai)",
+      "Bash(rpicam-hello:*)",
+      "Bash(export DISPLAY=:0)",
+      "Bash(xrandr:*)",
+      "Bash(mode vision)",
+      "Bash(xdotool search:*)",
+      "Bash(sudo raspi-config:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,0 +1,4 @@
+services:
+  dev-notes:
+    image: alpine:latest
+    command: ["sh", "-c", "while true; do echo Athena Dev Mode; sleep 60; done"]
