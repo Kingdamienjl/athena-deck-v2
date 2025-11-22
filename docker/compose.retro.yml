@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  retroarch:
+    image: lscr.io/linuxserver/retroarch:latest
+    container_name: athena-retro
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - DISPLAY=:0
+    volumes:
+      # RetroArch config and assets
+      - retroarch_config:/config
+      # ROMs storage (add your ROM files here)
+      - /home/pi/athena-deck-v2/roms:/roms
+      # Save states and saves
+      - retroarch_saves:/config/retroarch/saves
+      # X11 socket for display on FNK0100
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      # Xauthority for X11 auth
+      - /home/pi/.Xauthority:/root/.Xauthority:ro
+    ports:
+      # Web UI for RetroArch management
+      - "3001:3000"
+    devices:
+      # GPU access for hardware acceleration
+      - /dev/dri:/dev/dri
+      # Input devices (keyboard, controllers)
+      - /dev/input:/dev/input
+    privileged: true
+    restart: unless-stopped
+    labels:
+      - "athena.deck.mode=retro"
+      - "athena.deck.description=Retro Gaming - RetroArch multi-emulator"
+
+volumes:
+  retroarch_config:
+    name: athena_retroarch_config
+  retroarch_saves:
+    name: athena_retroarch_saves

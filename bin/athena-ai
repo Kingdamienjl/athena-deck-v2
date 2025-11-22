@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Athena AI - Safe wrapper for AI mode
+# Starts Ollama + Open WebUI via Docker, prints access URLs
+# Does NOT auto-launch GUI (avoids display corruption issues)
+
+set -e
+
+echo "╔════════════════════════════════════════════════════════════╗"
+echo "║              ATHENA DECK - AI MODE                         ║"
+echo "╚════════════════════════════════════════════════════════════╝"
+echo
+
+# Start AI stack via mode command
+mode ai
+
+echo
+echo "─────────────────────────────────────────────────────────────"
+echo "AI stack is running in headless mode."
+echo
+echo "To access via browser on another device, visit the Network URLs."
+echo "To access on the Athena Deck display, manually open a browser"
+echo "and navigate to http://127.0.0.1:3000"
+echo
+echo "IMPORTANT: Chromium kiosk mode may cause display issues on"
+echo "           the FNK0100. Use windowed mode instead if needed."
+echo "─────────────────────────────────────────────────────────────"

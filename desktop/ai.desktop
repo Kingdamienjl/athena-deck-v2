@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=AI Mode
+Comment=Start Ollama LLM server
+Exec=/usr/local/bin/mode ai
+Icon=/home/pi/athena-deck-v2/desktop/icons/ai.svg
+Terminal=false
+Categories=System;

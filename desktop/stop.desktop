@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Stop All Modes
+Comment=Stop all services and containers
+Exec=/usr/local/bin/mode stop
+Icon=/home/pi/athena-deck-v2/desktop/icons/stop.svg
+Terminal=false
+Categories=System;

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Dev Mode
+Comment=Start development environment
+Exec=/usr/local/bin/mode dev
+Icon=/home/pi/athena-deck-v2/desktop/icons/dev.svg
+Terminal=false
+Categories=System;

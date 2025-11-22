@@ -21,7 +21,13 @@ Thumbs.db
 
 # Backups / archives
 *.tar.gz
-backups/*.tar.gz
+backups/
+
+# Models (large binary files - download via scripts)
+models/
+
+# ROMs (user content, not for version control)
+roms/
 
 # Pi-specific noise
 *.old

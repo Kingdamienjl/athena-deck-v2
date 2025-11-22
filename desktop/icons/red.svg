@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect width="200" height="200" rx="20" fill="#e53935"/>
+  <path d="M 100 50 L 100 85" stroke="white" stroke-width="5" fill="none"/>
+  <path d="M 100 85 Q 75 85 75 110 L 75 135 Q 75 145 85 145 L 115 145 Q 125 145 125 135 L 125 110 Q 125 85 100 85 Z" fill="white"/>
+  <rect x="90" y="135" width="20" height="15" fill="white"/>
+  <circle cx="100" cy="110" r="6" fill="#e53935"/>
+  <text x="100" y="170" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="white" text-anchor="middle">RED</text>
+</svg>

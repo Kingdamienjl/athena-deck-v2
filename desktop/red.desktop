@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Red Team Mode
+Comment=Start red team tools
+Exec=/usr/local/bin/mode red
+Icon=/home/pi/athena-deck-v2/desktop/icons/red.svg
+Terminal=false
+Categories=System;

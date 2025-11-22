@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Kali Shell - Quick access to Athena Kali Linux container
+
+CONTAINER_NAME="athena-kali"
+
+# Check if container exists
+if ! docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+    echo "ERROR: Kali container '$CONTAINER_NAME' not found."
+    echo "Start it first with: mode red"
+    exit 1
+fi
+
+# Check if container is running
+if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+    echo "ERROR: Kali container '$CONTAINER_NAME' exists but is not running."
+    echo "Start it with: docker start $CONTAINER_NAME"
+    echo "Or switch to red mode: mode red"
+    exit 1
+fi
+
+# Check if still installing (look for apt-get process)
+if docker exec "$CONTAINER_NAME" pgrep -f "apt-get" >/dev/null 2>&1; then
+    echo "⚠ WARNING: Kali is still installing packages in the background."
+    echo "You can proceed, but some tools may not be available yet."
+    echo ""
+    echo "Monitor installation progress in another terminal with:"
+    echo "  docker logs -f $CONTAINER_NAME"
+    echo ""
+    read -p "Continue anyway? [y/N] " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 0
+    fi
+fi
+
+echo "Entering Kali Linux container as root..."
+echo "Type 'exit' to return to Raspberry Pi shell."
+echo ""
+
+# Execute interactive bash shell
+docker exec -it "$CONTAINER_NAME" bash

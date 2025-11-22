@@ -1,0 +1,422 @@
+#!/usr/bin/env python3
+"""
+Athena Vision Detection - Full-screen camera HUD with:
+- Object detection (MobileNet SSD)
+- Face detection (Haar Cascade)
+- OCR text detection (Tesseract)
+- Crosshairs overlay
+Optimized for Raspberry Pi with FNK0100 800x480 DSI display
+"""
+
+import cv2
+import numpy as np
+from picamera2 import Picamera2
+import time
+import os
+import sys
+
+# Try importing pytesseract for OCR
+try:
+    import pytesseract
+    OCR_AVAILABLE = True
+except ImportError:
+    OCR_AVAILABLE = False
+    print("⚠ Warning: pytesseract not available. OCR disabled.")
+    print("  Install with: sudo apt install tesseract-ocr python3-pytesseract")
+
+class AthenaVisionDetector:
+    def __init__(self, display_width=800, display_height=480):
+        self.display_width = display_width
+        self.display_height = display_height
+
+        # Performance settings
+        self.process_scale = 0.5  # Process at 50% resolution for speed
+        self.skip_frames = 2      # Process every Nth frame for detection
+        self.frame_count = 0
+
+        # Detection results (persist across frames)
+        self.last_faces = []
+        self.last_objects = []
+        self.last_text_regions = []
+
+        # Initialize camera
+        print("Initializing camera...")
+        self.picam2 = Picamera2()
+        config = self.picam2.create_preview_configuration(
+            main={"size": (self.display_width, self.display_height), "format": "RGB888"}
+        )
+        self.picam2.configure(config)
+
+        # Load face detector (Haar Cascade - fast and reliable)
+        self.face_cascade = None
+        self.load_face_detector()
+
+        # Load object detector (MobileNet SSD)
+        self.net = None
+        self.classes = None
+        self.load_object_detector()
+
+        # Colors for detection boxes
+        self.face_color = (0, 255, 0)       # Green for faces
+        self.object_color = (255, 0, 255)   # Magenta for objects
+        self.text_region_color = (0, 255, 255)  # Cyan for text regions
+        self.text_color = (255, 255, 255)   # White for text labels
+        self.crosshair_color = (0, 255, 0)  # Green for crosshairs
+
+        # Stats
+        self.fps = 0
+        self.last_time = time.time()
+        self.fps_counter = 0
+
+    def load_face_detector(self):
+        """Load Haar Cascade face detector"""
+        # Try multiple possible locations for Haar Cascade files
+        cascade_paths = [
+            '/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml',
+            '/usr/local/share/opencv4/haarcascades/haarcascade_frontalface_default.xml',
+            '/usr/share/opencv/haarcascades/haarcascade_frontalface_default.xml',
+        ]
+
+        for path in cascade_paths:
+            if os.path.exists(path):
+                self.face_cascade = cv2.CascadeClassifier(path)
+                print(f"✓ Face detector loaded from {path}")
+                return
+
+        # If not found, try to use cv2's built-in path (if available)
+        try:
+            import cv2.data
+            path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+            if os.path.exists(path):
+                self.face_cascade = cv2.CascadeClassifier(path)
+                print(f"✓ Face detector loaded from {path}")
+                return
+        except:
+            pass
+
+        print("⚠ Warning: Face detector not found. Face detection disabled.")
+        print("  Install with: sudo apt-get install opencv-data")
+
+    def load_object_detector(self):
+        """Load MobileNet SSD object detector"""
+        model_dir = "/home/pi/athena-deck-v2/models"
+        prototxt = f"{model_dir}/MobileNetSSD_deploy.prototxt"
+        model = f"{model_dir}/MobileNetSSD_deploy.caffemodel"
+
+        # COCO class labels
+        self.classes = [
+            "background", "aeroplane", "bicycle", "bird", "boat",
+            "bottle", "bus", "car", "cat", "chair", "cow", "diningtable",
+            "dog", "horse", "motorbike", "person", "pottedplant", "sheep",
+            "sofa", "train", "tvmonitor"
+        ]
+
+        if os.path.exists(prototxt) and os.path.exists(model):
+            try:
+                self.net = cv2.dnn.readNetFromCaffe(prototxt, model)
+                print(f"✓ Object detector loaded (MobileNet SSD)")
+                return
+            except Exception as e:
+                print(f"⚠ Error loading object detector: {e}")
+
+        print("⚠ Warning: Object detector not found. Object detection disabled.")
+        print(f"  Models should be in: {model_dir}/")
+        print("  Run: python3 /home/pi/athena-deck-v2/scripts/download_models.py")
+
+    def detect_faces(self, frame):
+        """Detect faces using Haar Cascade"""
+        if self.face_cascade is None:
+            return []
+
+        # Convert to grayscale for face detection
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        # Detect faces
+        faces = self.face_cascade.detectMultiScale(
+            gray,
+            scaleFactor=1.1,
+            minNeighbors=5,
+            minSize=(30, 30),
+            flags=cv2.CASCADE_SCALE_IMAGE
+        )
+
+        return faces
+
+    def detect_objects(self, frame):
+        """Detect objects using MobileNet SSD"""
+        if self.net is None:
+            return []
+
+        h, w = frame.shape[:2]
+
+        # Prepare blob for DNN
+        blob = cv2.dnn.blobFromImage(
+            cv2.resize(frame, (300, 300)),
+            0.007843,
+            (300, 300),
+            127.5
+        )
+
+        # Run detection
+        self.net.setInput(blob)
+        detections = self.net.forward()
+
+        objects = []
+        for i in range(detections.shape[2]):
+            confidence = detections[0, 0, i, 2]
+
+            # Filter by confidence
+            if confidence > 0.5:
+                class_id = int(detections[0, 0, i, 1])
+                if class_id < len(self.classes):
+                    box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
+                    (x1, y1, x2, y2) = box.astype("int")
+
+                    objects.append({
+                        'class': self.classes[class_id],
+                        'confidence': confidence,
+                        'box': (x1, y1, x2 - x1, y2 - y1)
+                    })
+
+        return objects
+
+    def detect_text(self, frame):
+        """Detect text regions using OCR"""
+        if not OCR_AVAILABLE:
+            return []
+
+        try:
+            # Use pytesseract to get bounding boxes for detected text
+            # Output detailed data including box coordinates
+            data = pytesseract.image_to_data(frame, output_type=pytesseract.Output.DICT)
+
+            text_regions = []
+            n_boxes = len(data['text'])
+
+            for i in range(n_boxes):
+                # Filter out empty detections and low confidence
+                if int(data['conf'][i]) > 30:  # Confidence threshold
+                    text = data['text'][i].strip()
+                    if len(text) > 0:  # Only include non-empty text
+                        x, y, w, h = data['left'][i], data['top'][i], data['width'][i], data['height'][i]
+                        text_regions.append({
+                            'text': text,
+                            'box': (x, y, w, h),
+                            'confidence': int(data['conf'][i])
+                        })
+
+            return text_regions
+        except Exception as e:
+            print(f"OCR error: {e}")
+            return []
+
+    def draw_crosshairs(self, frame):
+        """Draw crosshairs in center of frame"""
+        h, w = frame.shape[:2]
+        center_x, center_y = w // 2, h // 2
+
+        # Crosshair size
+        size = 20
+        thickness = 2
+        gap = 5  # Gap in center
+
+        # Horizontal line (left and right of center)
+        cv2.line(frame, (center_x - size, center_y), (center_x - gap, center_y),
+                 self.crosshair_color, thickness)
+        cv2.line(frame, (center_x + gap, center_y), (center_x + size, center_y),
+                 self.crosshair_color, thickness)
+
+        # Vertical line (top and bottom of center)
+        cv2.line(frame, (center_x, center_y - size), (center_x, center_y - gap),
+                 self.crosshair_color, thickness)
+        cv2.line(frame, (center_x, center_y + gap), (center_x, center_y + size),
+                 self.crosshair_color, thickness)
+
+        # Center dot
+        cv2.circle(frame, (center_x, center_y), 2, self.crosshair_color, -1)
+
+        return frame
+
+    def draw_detections(self, frame, draw_crosshairs=True):
+        """Draw detection boxes and labels on frame"""
+        # Draw crosshairs first (so they're behind other overlays)
+        if draw_crosshairs:
+            frame = self.draw_crosshairs(frame)
+
+        # Draw face detections
+        for (x, y, w, h) in self.last_faces:
+            cv2.rectangle(frame, (x, y), (x + w, y + h), self.face_color, 2)
+            cv2.putText(
+                frame, "FACE", (x, y - 10),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.face_color, 2
+            )
+
+        # Draw object detections
+        for obj in self.last_objects:
+            x, y, w, h = obj['box']
+            label = f"{obj['class']}: {obj['confidence']:.2f}"
+
+            cv2.rectangle(frame, (x, y), (x + w, y + h), self.object_color, 2)
+            cv2.putText(
+                frame, label, (x, y - 10),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.object_color, 2
+            )
+
+        # Draw text region detections (OCR)
+        for text_region in self.last_text_regions:
+            x, y, w, h = text_region['box']
+            text = text_region['text']
+            conf = text_region['confidence']
+
+            # Draw box around detected text
+            cv2.rectangle(frame, (x, y), (x + w, y + h), self.text_region_color, 1)
+
+            # Draw detected text label
+            label = f"{text} ({conf}%)"
+            cv2.putText(
+                frame, label, (x, y - 5),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.4, self.text_region_color, 1
+            )
+
+        # Draw stats overlay
+        stats_text = f"FPS: {self.fps:.1f} | Faces: {len(self.last_faces)} | Objects: {len(self.last_objects)} | Text: {len(self.last_text_regions)}"
+        cv2.putText(
+            frame, stats_text, (10, 30),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.text_color, 2
+        )
+
+        return frame
+
+    def update_fps(self):
+        """Calculate FPS"""
+        self.fps_counter += 1
+        if self.fps_counter >= 30:
+            current_time = time.time()
+            self.fps = self.fps_counter / (current_time - self.last_time)
+            self.last_time = current_time
+            self.fps_counter = 0
+
+    def run(self):
+        """Main detection loop"""
+        print("Starting Athena Vision Detection HUD...")
+        print("Controls:")
+        print("  'q' - Quit")
+        print("  'f' - Toggle face detection")
+        print("  'o' - Toggle object detection")
+        print("  't' - Toggle OCR text detection")
+        print("  'c' - Toggle crosshairs")
+
+        # Start camera
+        self.picam2.start()
+        time.sleep(2)  # Camera warmup
+
+        # Create fullscreen window
+        window_name = "Athena Vision"
+        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+        cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+        # Detection toggles
+        face_detection_enabled = True
+        object_detection_enabled = True
+        text_detection_enabled = OCR_AVAILABLE
+        crosshairs_enabled = True
+
+        try:
+            while True:
+                # Capture frame
+                frame = self.picam2.capture_array()
+
+                # Convert RGB to BGR for OpenCV
+                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
+                # Process detection every N frames for performance
+                if self.frame_count % self.skip_frames == 0:
+                    # Resize for faster processing
+                    small_frame = cv2.resize(
+                        frame,
+                        (0, 0),
+                        fx=self.process_scale,
+                        fy=self.process_scale
+                    )
+
+                    # Run detections
+                    if face_detection_enabled and self.face_cascade is not None:
+                        faces = self.detect_faces(small_frame)
+                        # Scale coordinates back to original size
+                        scale_factor = 1.0 / self.process_scale
+                        self.last_faces = [
+                            (int(x * scale_factor), int(y * scale_factor),
+                             int(w * scale_factor), int(h * scale_factor))
+                            for (x, y, w, h) in faces
+                        ]
+
+                    if object_detection_enabled and self.net is not None:
+                        objects = self.detect_objects(small_frame)
+                        # Scale coordinates back to original size
+                        scale_factor = 1.0 / self.process_scale
+                        for obj in objects:
+                            x, y, w, h = obj['box']
+                            obj['box'] = (
+                                int(x * scale_factor), int(y * scale_factor),
+                                int(w * scale_factor), int(h * scale_factor)
+                            )
+                        self.last_objects = objects
+
+                    if text_detection_enabled:
+                        text_regions = self.detect_text(small_frame)
+                        # Scale coordinates back to original size
+                        scale_factor = 1.0 / self.process_scale
+                        for region in text_regions:
+                            x, y, w, h = region['box']
+                            region['box'] = (
+                                int(x * scale_factor), int(y * scale_factor),
+                                int(w * scale_factor), int(h * scale_factor)
+                            )
+                        self.last_text_regions = text_regions
+
+                # Draw detections on full-resolution frame (includes crosshairs if enabled)
+                frame = self.draw_detections(frame, draw_crosshairs=crosshairs_enabled)
+
+                # Display frame
+                cv2.imshow(window_name, frame)
+
+                # Update stats
+                self.update_fps()
+                self.frame_count += 1
+
+                # Handle keyboard input
+                key = cv2.waitKey(1) & 0xFF
+                if key == ord('q'):
+                    break
+                elif key == ord('f'):
+                    face_detection_enabled = not face_detection_enabled
+                    print(f"Face detection: {'ON' if face_detection_enabled else 'OFF'}")
+                elif key == ord('o'):
+                    object_detection_enabled = not object_detection_enabled
+                    print(f"Object detection: {'ON' if object_detection_enabled else 'OFF'}")
+                elif key == ord('t'):
+                    if OCR_AVAILABLE:
+                        text_detection_enabled = not text_detection_enabled
+                        print(f"OCR text detection: {'ON' if text_detection_enabled else 'OFF'}")
+                    else:
+                        print("OCR not available - install pytesseract")
+                elif key == ord('c'):
+                    crosshairs_enabled = not crosshairs_enabled
+                    print(f"Crosshairs: {'ON' if crosshairs_enabled else 'OFF'}")
+
+        except KeyboardInterrupt:
+            print("\nShutting down...")
+
+        finally:
+            # Cleanup
+            self.picam2.stop()
+            cv2.destroyAllWindows()
+            print("Athena Vision Detection stopped.")
+
+
+if __name__ == "__main__":
+    # Set display environment
+    os.environ['DISPLAY'] = ':0'
+
+    detector = AthenaVisionDetector(display_width=800, display_height=480)
+    detector.run()

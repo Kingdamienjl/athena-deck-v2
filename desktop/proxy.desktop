@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Proxy Mode
+Comment=Start Caddy reverse proxy
+Exec=/usr/local/bin/mode proxy
+Icon=/home/pi/athena-deck-v2/desktop/icons/proxy.svg
+Terminal=false
+Categories=System;

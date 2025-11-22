@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect width="200" height="200" rx="20" fill="#00acc1"/>
+  <!-- Game controller body -->
+  <path d="M 50 80 Q 50 70 60 70 L 140 70 Q 150 70 150 80 L 150 110 Q 150 120 145 125 L 130 125 Q 125 125 125 120 L 125 115 Q 120 110 110 110 L 90 110 Q 80 110 75 115 L 75 120 Q 75 125 70 125 L 55 125 Q 50 120 50 110 Z" fill="white"/>
+  <!-- D-pad (left) -->
+  <rect x="65" y="85" width="8" height="20" rx="2" fill="#00acc1"/>
+  <rect x="61" y="89" width="16" height="12" rx="2" fill="#00acc1"/>
+  <!-- Action buttons (right) -->
+  <circle cx="130" cy="90" r="5" fill="#00acc1"/>
+  <circle cx="120" cy="95" r="5" fill="#00acc1"/>
+  <circle cx="140" cy="95" r="5" fill="#00acc1"/>
+  <circle cx="130" cy="100" r="5" fill="#00acc1"/>
+  <!-- Center button -->
+  <circle cx="100" cy="95" r="3" fill="#00acc1"/>
+  <text x="100" y="170" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="white" text-anchor="middle">RETRO</text>
+</svg>

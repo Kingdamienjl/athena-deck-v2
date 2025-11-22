@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Retro Gaming Mode
+Comment=Start RetroArch emulator for retro gaming
+Exec=/usr/local/bin/mode retro
+Icon=/home/pi/athena-deck-v2/desktop/icons/retro.svg
+Terminal=false
+Categories=Game;

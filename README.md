@@ -41,16 +41,38 @@ sudo bash scripts/install_athena_deck.sh
 
 ---
 
+## Desktop Mode Switcher
+
+**Large clickable icons for easy mode switching on the DSI touchscreen.**
+
+Located in `desktop/` directory. Install with:
+
+```bash
+cd /home/pi/athena-deck-v2/desktop
+bash install-desktop-icons.sh
+```
+
+**Features:**
+- 7 large mode icons (Vision, AI, Dev, Red, Retro, Proxy, Stop)
+- Color-coded with distinctive symbols
+- One-click mode switching
+- Works alongside command-line `mode` command
+
+See `desktop/README.md` for details.
+
+---
+
 ## Mode Command Reference
 
 ### Available Modes
 
 | Command | Description | Action |
 |---------|-------------|--------|
-| `mode vision` | Camera HUD | Full-screen camera preview on DSI display using DRM framebuffer |
+| `mode vision` | Camera HUD | Full-screen camera with object detection, face detection, OCR, and crosshairs |
 | `mode ai` | AI Stack | Ollama LLM server (port 11434) |
 | `mode dev` | Development | Placeholder for dev tools |
-| `mode red` | Red Team | Placeholder for security tools |
+| `mode red` | Red Team | Kali Linux container for security tools |
+| `mode retro` | Retro Gaming | RetroArch emulator for classic games |
 | `mode proxy` | Reverse Proxy | Caddy server (ports 80/443) |
 | `mode stop` | Shutdown | Stop all containers and services |
 | `mode status` | Status Check | Display current mode and running containers |
@@ -128,20 +150,35 @@ journalctl -u oled -f
 
 ## Vision Mode Technical Details
 
-**Script**: `/usr/local/bin/athena-vision`
+**Script**: `/usr/local/bin/athena-vision-detect`
 
 **Key Features:**
-- Uses `rpicam-hello` with `--drm-preview` for direct framebuffer rendering
-- Bypasses X11/Wayland window manager for true fullscreen
-- Automatically sets DSI-1 as primary display at 800×480
-- No window decorations or borders
+- **Object Detection**: MobileNet SSD identifies 20+ object classes (person, car, bottle, etc.)
+- **Face Detection**: Haar Cascade fast face recognition
+- **OCR Text Detection**: Tesseract reads text in camera view
+- **Crosshairs Overlay**: Center-screen targeting reticle
+- **Full-Screen HUD**: 800×480 OpenCV window on FNK0100 DSI display
+- **Real-Time Stats**: FPS, detection counts displayed on screen
+
+**Interactive Controls:**
+- `q` - Quit vision mode
+- `f` - Toggle face detection on/off
+- `o` - Toggle object detection on/off
+- `t` - Toggle OCR text detection on/off
+- `c` - Toggle crosshairs on/off
 
 **How it works:**
-1. Sets `DISPLAY=:0` and `XAUTHORITY` for desktop session access
-2. Runs `xrandr` to configure DSI-1 as primary at 800×480
-3. Launches `rpicam-hello` with DRM preview (renders directly to framebuffer)
+1. Uses Picamera2 for camera capture at 800×480
+2. Processes frames with OpenCV computer vision
+3. MobileNet SSD for object detection
+4. Haar Cascade for face detection
+5. Tesseract for OCR text recognition
+6. Renders fullscreen with detection overlays
 
-**Exit**: Press `Ctrl+C` to quit
+**Requirements:**
+- Tesseract OCR: `sudo apt install tesseract-ocr`
+- MobileNet models: Run `/home/pi/athena-deck-v2/scripts/download_models.py`
+- OpenCV and dependencies (auto-installed)
 
 ---
 
@@ -151,6 +188,18 @@ journalctl -u oled -f
 athena-deck-v2/
 ├── bin/
 │   └── athena-vision          # Camera HUD launcher script
+├── desktop/
+│   ├── icons/                 # SVG icons for mode switcher
+│   │   ├── vision.svg
+│   │   ├── ai.svg
+│   │   ├── dev.svg
+│   │   ├── red.svg
+│   │   ├── retro.svg
+│   │   ├── proxy.svg
+│   │   └── stop.svg
+│   ├── *.desktop              # Desktop launcher files (7 modes)
+│   ├── install-desktop-icons.sh  # Desktop icons installer
+│   └── README.md              # Desktop switcher docs
 ├── docker/
 │   ├── compose.ai.yml         # Ollama AI stack
 │   ├── compose.dev.yml        # Development placeholder

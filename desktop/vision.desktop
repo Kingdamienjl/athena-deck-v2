@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Vision Mode
+Comment=Start camera HUD on DSI display
+Exec=/usr/local/bin/mode vision
+Icon=/home/pi/athena-deck-v2/desktop/icons/vision.svg
+Terminal=false
+Categories=System;
